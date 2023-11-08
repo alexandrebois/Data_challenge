@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from shapely.geometry import Polygon
-from utils import local_IoU
+from utils import local_IoU, unnormalize_boxes
 
 
 class ResultsEvaluation:
@@ -42,6 +42,7 @@ class ResultsEvaluation:
                 "pred_y2",
             ],
         )
+        self.df_results["im_name"] = annotation["im_name"].values
         self.df_results["IoU"] = self.df_results.apply(
             lambda row: local_IoU(
                 row["x1"],
@@ -57,55 +58,46 @@ class ResultsEvaluation:
         )
         return self.df_results
 
-    def local_IoU(self):
-        """This function calculates the IoU for the image i.
+    def get_results_unormalized(
+        self, annotation_completed, original_size, current_size
+    ):
+        if self.df_results is None:
+            self.get_results(annotation_completed)
+        self.df_results[["x1", "x2", "y1", "y2"]] = pd.DataFrame(
+            self.df_results.apply(
+                lambda row: np.array(
+                    unnormalize_boxes(
+                        row["x1"],
+                        row["x2"],
+                        row["y1"],
+                        row["y2"],
+                        current_size,
+                        original_size.loc[row["im_name"]],
+                    )
+                ),
+                axis=1,
+            ).to_list(),
+            columns=["x1", "x2", "y1", "y2"],
+        )
 
-        Args:
-            xmin_pred_i: Value of the prediction min x-axis.
-            xmax_pred_i: Value of the prediction max x-axis.
-            ymin_pred_i: Value of the prediction min y-axis.
-            ymax_pred_i: Value of the prediction max y-axis.
-            xmin_true_i: Value of the true min x-axis.
-            xmax_true_i: Value of the true max x-axis.
-            ymin_true_i: Value of the true min y-axis.
-            ymax_true_i: Value of the true max y-axis.
+        self.df_results[["pred_x1", "pred_x2", "pred_y1", "pred_y2"]] = pd.DataFrame(
+            self.df_results.apply(
+                lambda row: np.array(
+                    unnormalize_boxes(
+                        row["pred_x1"],
+                        row["pred_x2"],
+                        row["pred_y1"],
+                        row["pred_y2"],
+                        current_size,
+                        original_size.loc[row["im_name"]],
+                    )
+                ),
+                axis=1,
+            ).to_list(),
+            columns=["pred_x1", "pred_x2", "pred_y1", "pred_y2"],
+        )
 
-        Returns:
-            The return value is the intersection over union.
-
-        """
-        if (xmin_true_i, xmax_true_i, ymin_true_i, ymax_true_i) == (0, 0, 0, 0):
-            if (xmin_pred_i, xmax_pred_i, ymin_pred_i, ymax_pred_i) == (
-                0,
-                0,
-                0,
-                0,
-            ):
-                return 1
-
-            else:
-                return 0
-
-        else:
-            box_pred_i = [
-                [xmin_pred_i, ymin_pred_i],
-                [xmax_pred_i, ymin_pred_i],
-                [xmax_pred_i, ymax_pred_i],
-                [xmin_pred_i, ymax_pred_i],
-            ]
-            box_true_i = [
-                [xmin_true_i, ymin_true_i],
-                [xmax_true_i, ymin_true_i],
-                [xmax_true_i, ymax_true_i],
-                [xmin_true_i, ymax_true_i],
-            ]
-            poly_1 = Polygon(box_pred_i)
-            poly_2 = Polygon(box_true_i)
-            try:
-                iou = poly_1.intersection(poly_2).area / poly_1.union(poly_2).area
-                return iou
-            except:
-                return 0
+        return self.df_results
 
 
 class ResultsVisualisation:

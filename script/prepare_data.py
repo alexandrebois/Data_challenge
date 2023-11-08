@@ -7,7 +7,7 @@ import shutil
 from utils import *
 
 
-class DataPreparation:
+class DataPreparationTrain:
     def __init__(
         self,
         images_path,
@@ -19,6 +19,16 @@ class DataPreparation:
         self.images_path = images_path
         self.annotation_filename = annotation_filename
         self.im_size = im_size
+
+    def get_image_original_size(self):
+        self.im_original_size = {}
+        for file in os.listdir(self.images_path):
+            if file.endswith(".jpg"):
+                im = plt.imread(self.images_path + file)
+                self.im_original_size[file] = im.shape[:2]
+        self.im_original_size = pd.DataFrame.from_dict(
+            self.im_original_size, orient="index"
+        )
 
     def import_annotation(self):
         annotation = pd.read_csv(self.annotation_path + self.annotation_filename)
@@ -107,3 +117,18 @@ class DataPreparation:
                     index=False,
                     lineterminator=" ",
                 )
+
+
+# class DataPreparationTest:
+#     def __init__(self, images_path):
+#         self.images_path = images_path
+
+#     def get_image_original_size(self):
+#         self.im_original_size = {}
+#         for file in os.listdir(self.images_path):
+#             if file.endswith(".jpg"):
+#                 im = plt.imread(self.images_path + file)
+#                 self.im_original_size[file] = im.shape[:2]
+#         self.im_original_size = pd.DataFrame.from_dict(
+#             self.im_original_size, orient="index"
+#         )

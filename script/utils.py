@@ -53,6 +53,16 @@ def normalize_images_and_boxes(bbox_data, target_size, image_directory):
     return np.array(images), np.array(labels)
 
 
+def unnormalize_boxes(x1, x2, y1, y2, current_size, target_size):
+    scale_x = target_size[0] / current_size[0]
+    scale_y = target_size[1] / current_size[1]
+    x1_unscaled = x1 * scale_x
+    x2_unscaled = x2 * scale_x
+    y1_unscaled = y1 * scale_y
+    y2_unscaled = y2 * scale_y
+    return x1_unscaled, x2_unscaled, y1_unscaled, y2_unscaled
+
+
 def local_IoU(
     xmin_pred_i,
     xmax_pred_i,
