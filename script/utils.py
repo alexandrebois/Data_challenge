@@ -1,5 +1,6 @@
 import numpy as np
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
+from shapely.geometry import Polygon
 
 
 def normalize_images_and_boxes(bbox_data, target_size, image_directory):
@@ -50,3 +51,63 @@ def normalize_images_and_boxes(bbox_data, target_size, image_directory):
         labels.append(label)
 
     return np.array(images), np.array(labels)
+
+
+def local_IoU(
+    xmin_pred_i,
+    xmax_pred_i,
+    ymin_pred_i,
+    ymax_pred_i,
+    xmin_true_i,
+    xmax_true_i,
+    ymin_true_i,
+    ymax_true_i,
+):
+    """This function calculates the IoU for the image i.
+
+    Args:
+        xmin_pred_i: Value of the prediction min x-axis.
+        xmax_pred_i: Value of the prediction max x-axis.
+        ymin_pred_i: Value of the prediction min y-axis.
+        ymax_pred_i: Value of the prediction max y-axis.
+        xmin_true_i: Value of the true min x-axis.
+        xmax_true_i: Value of the true max x-axis.
+        ymin_true_i: Value of the true min y-axis.
+        ymax_true_i: Value of the true max y-axis.
+
+    Returns:
+        The return value is the intersection over union.
+
+    """
+    if (xmin_true_i, xmax_true_i, ymin_true_i, ymax_true_i) == (0, 0, 0, 0):
+        if (xmin_pred_i, xmax_pred_i, ymin_pred_i, ymax_pred_i) == (
+            0,
+            0,
+            0,
+            0,
+        ):
+            return 1
+
+        else:
+            return 0
+
+    else:
+        box_pred_i = [
+            [xmin_pred_i, ymin_pred_i],
+            [xmax_pred_i, ymin_pred_i],
+            [xmax_pred_i, ymax_pred_i],
+            [xmin_pred_i, ymax_pred_i],
+        ]
+        box_true_i = [
+            [xmin_true_i, ymin_true_i],
+            [xmax_true_i, ymin_true_i],
+            [xmax_true_i, ymax_true_i],
+            [xmin_true_i, ymax_true_i],
+        ]
+        poly_1 = Polygon(box_pred_i)
+        poly_2 = Polygon(box_true_i)
+        try:
+            iou = poly_1.intersection(poly_2).area / poly_1.union(poly_2).area
+            return iou
+        except:
+            return 0
