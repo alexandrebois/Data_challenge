@@ -1,0 +1,4 @@
+names: ["Not Car", "Car"]
+nc: 2
+train: ../data/data_YOLO4/train
+val: ../data/data_YOLO4/val
