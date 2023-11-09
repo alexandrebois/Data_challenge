@@ -202,3 +202,26 @@ class EvalWithoutScaling:
             axis=1,
         )
         return self.df_results
+
+
+class SaveTest:
+    def __init__(self, results):
+        self.results = results
+
+    def get_results_as_dataframe(self):
+        filenames = [result.path.split("/")[-1] for result in self.results]
+
+        self.array_results = np.array(
+            [
+                np.array(result.boxes.xyxy[0])
+                if len(result.boxes.cls) != 0
+                else [0, 0, 0, 0]
+                for result in self.results
+            ]
+        )
+        self.df_results = pd.DataFrame(
+            self.array_results,
+            columns=["x_min", "y_min", "x_max", "y_max"],
+        )
+        self.df_results["im_name"] = filenames
+        return self.df_results
