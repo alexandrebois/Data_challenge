@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from shapely.geometry import Polygon
 from utils import local_IoU, unnormalize_boxes
+import torch
 
 
 class ResultsEvaluation:
@@ -152,3 +153,52 @@ class ResultsVisualisation:
             plt.imshow(image)
             plt.axis("off")
             plt.show()
+
+
+class EvalWithoutScaling:
+    def __init__(self, results, path_annotation, filename_annotation):
+        self.results = results
+        self.path_annotation = path_annotation
+        self.filename_annotation = filename_annotation
+
+    def get_results_as_dataframe(self):
+        filenames = [result.path.split("/")[-1] for result in self.results]
+        annotation = pd.read_csv(self.path_annotation + self.filename_annotation)
+        self.df_results = annotation[annotation["im_name"].isin(filenames)].reset_index(
+            drop=True
+        )
+        self.df_results[
+            ["pred_class", "pred_x1", "pred_y1", "pred_x2", "pred_y2"]
+        ] = pd.DataFrame(
+            np.array(
+                [
+                    np.array(
+                        torch.cat(
+                            (torch.Tensor([result.boxes.cls[0]]), result.boxes.xyxy[0])
+                        )
+                    )
+                    if len(result.boxes.cls) != 0
+                    else [0, 0, 0, 0, 0]
+                    for result in self.results
+                ]
+            ),
+            columns=["pred_class", "pred_x1", "pred_y1", "pred_x2", "pred_y2"],
+        )
+        self.df_results.dropna(subset=["x_min"], inplace=True)
+        return self.df_results
+
+    def compute_IoU(self):
+        self.df_results["IoU"] = self.df_results.apply(
+            lambda row: local_IoU(
+                row["x_min"],
+                row["x_max"],
+                row["y_min"],
+                row["y_max"],
+                row["pred_x1"],
+                row["pred_x2"],
+                row["pred_y1"],
+                row["pred_y2"],
+            ),
+            axis=1,
+        )
+        return self.df_results
